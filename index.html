@@ -142,7 +142,9 @@ textarea{width:100%;min-height:120px;border:3px solid var(--line);border-radius:
       <div class="preview" id="preview"><img id="preview-img" alt="Foto elegida para subir"></div>
       <input type="file" id="file" accept="image/*" class="hidden">
       <button class="btn yellow full" type="button" id="pick">Subir foto</button>
-      <p class="thanks show hidden" id="photo-ok" style="color:var(--yellow)">¡Qué linda foto! Gracias por compartirla. 🎈</p>
+      <button class="btn full hidden" type="button" id="send-photo" style="margin-top:14px">Enviar foto por correo</button>
+      <p class="thanks show hidden" id="photo-ok" style="color:var(--yellow)">¡Qué linda foto! Ahora envíala a ARVI Happy. 🎈</p>
+      <p class="thanks show hidden" id="photo-note" style="color:#fff"></p>
     </section>
 
     <section class="card">
@@ -192,8 +194,41 @@ textarea{width:100%;min-height:120px;border:3px solid var(--line);border-radius:
   document.getElementById('fb').addEventListener('submit',function(e){
     e.preventDefault();
     if(!rating){msg.textContent='Elige cuántas estrellas nos das.';box.firstChild.focus();return}
-    document.getElementById('sent').classList.add('show');
+    var gustos=[].map.call(document.querySelectorAll('input[name=gusto]:checked'),function(c){return c.parentNode.textContent.trim()}).join(', ')||'(sin marcar)';
+    var rec=document.querySelector('input[name=reco]:checked');
+    var recTxt=rec?rec.parentNode.textContent.trim():'(sin responder)';
+    var cuerpo='Calificación: '+rating+' de 5 estrellas\n'
+      +'Lo que más le gustó: '+gustos+'\n'
+      +'¿Nos recomendaría?: '+recTxt+'\n'
+      +(f?'Fecha del cumpleaños: '+f+'\n':'')
+      +'\nExperiencia:\n'+(document.getElementById('texto').value.trim()||'(sin comentario)');
+    openMail('Opinión cumpleaños ARVI Happy ('+rating+' estrellas)',cuerpo);
+    var s=document.getElementById('sent');
+    s.textContent='Se abrió tu correo con la opinión lista. Presiona "Enviar" en tu app de correo para que llegue a ARVI Happy. 💛';
+    s.classList.add('show');
   });
+
+  var MAIL='ventas@arvihappy.com';
+  function openMail(asunto,cuerpo){
+    var a=document.createElement('a');
+    a.href='mailto:'+MAIL+'?subject='+encodeURIComponent(asunto)+'&body='+encodeURIComponent(cuerpo);
+    a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+  }
+
+  // Enviar foto por correo
+  document.getElementById('send-photo').onclick=function(){
+    var fl=file.files[0]; if(!fl)return;
+    var note=document.getElementById('photo-note');
+    var texto='Foto de mi cumpleaños en ARVI Happy. Enviar a '+MAIL;
+    if(navigator.canShare&&navigator.canShare({files:[fl]})){
+      navigator.share({files:[fl],title:'Foto cumpleaños ARVI Happy',text:texto}).catch(function(){});
+      note.textContent='Elige tu app de correo y envíala a '+MAIL+'.';
+    }else{
+      openMail('Foto de cumpleaños ARVI Happy','Hola ARVI Happy, les envío la foto de mi cumpleaños.\n\n(Adjunta la foto en este correo antes de enviar.)');
+      note.textContent='Se abrió tu correo: adjunta la foto ("'+fl.name+'") y presiona Enviar.';
+    }
+    note.classList.remove('hidden');
+  };
 
   // Foto
   var file=document.getElementById('file');
@@ -205,6 +240,7 @@ textarea{width:100%;min-height:120px;border:3px solid var(--line);border-radius:
       document.getElementById('preview-img').src=r.result;
       document.getElementById('preview').classList.add('show');
       document.getElementById('photo-ok').classList.remove('hidden');
+      document.getElementById('send-photo').classList.remove('hidden');
       document.getElementById('pick').textContent='Cambiar foto';
     };
     r.readAsDataURL(fl);
